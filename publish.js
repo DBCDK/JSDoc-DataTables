@@ -15,13 +15,13 @@
      */
     exports.publish = function(data, opts) {
         var out = '',
-            containerTemplate = template.render(fs.readFileSync(env.dirname + '/templates/JSDoc-DataTables/tmpl/container.tmpl')),
-            indexTemplate = template.render(fs.readFileSync(env.dirname + '/templates/JSDoc-DataTables/tmpl/index.tmpl'));
+            containerTemplate = template.render(fs.readFileSync(env.dirname + '/templates/JSDoc-DataTables/tmpl/container.tmpl', 'utf8'));
+            indexTemplate = template.render(fs.readFileSync(env.dirname + '/templates/JSDoc-DataTables/tmpl/index.tmpl', 'utf8'));
         
         function render(tmpl, partialData) {
             var renderFunction = arguments.callee.cache[tmpl];
             if (!renderFunction) {
-                renderFunction = arguments.callee.cache[tmpl] = template.render(fs.readFileSync(env.dirname + '/templates/JSDoc-DataTables/tmpl/'+tmpl));
+                renderFunction = arguments.callee.cache[tmpl] = template.render(fs.readFileSync(env.dirname + '/templates/JSDoc-DataTables/tmpl/'+tmpl, 'utf8'));
             }
             partialData.render = arguments.callee;
             partialData.find = find;
@@ -33,7 +33,7 @@
         render.cache = {};
         
         function find(spec) {
-            return data.get( data.find(spec) );
+            return data(spec).get();
         }
         
         function htmlsafe(str) {
@@ -122,10 +122,10 @@
             f.attribs = '<span class="type-signature">'+htmlsafe(attribs.length? '<'+attribs.join(', ')+'> ' : '')+'</span>';
         }
         
-        data.remove({undocumented: true});
-        data.remove({ignore: true});
-        if (!opts.private) { data.remove({access: 'private'}); }
-        data.remove({memberof: '<anonymous>'});
+        data({undocumented: true}).remove();
+        data({ignore: true}).remove();
+        if (!opts.private) { data({access: 'private'}).remove(); }
+        data({memberof: '<anonymous>'}).remove();
         
         var packageInfo = (find({kind: 'package'}) || []) [0];
         
@@ -133,7 +133,7 @@
         //    return helper.resolveLinks(text);
         //}
         
-        data.forEach(function(doclet) {
+        data().each(function(doclet) {
             doclet.signature = '';
             doclet.attribs = '';
             
@@ -169,7 +169,7 @@
             }
         });
         
-        data.orderBy(['longname', 'version', 'since']);
+        data.sort('longname, version, since');
         
         // kinds of containers
         var globals = find( {kind: ['member', 'function', 'constant', 'typedef'], memberof: {isUndefined: true}} ),
@@ -201,12 +201,12 @@
         
         var containers = ['class', 'module', 'external', 'namespace', 'mixin'];
         
-        data.forEach(function(doclet) {
+        data().each(function(doclet) {
             var url = helper.createLink(doclet);
             helper.registerLink(doclet.longname, url);
         });
         
-        data.forEach(function(doclet) {
+        data().each(function(doclet) {
             var url = helper.longnameToUrl[doclet.longname];
 
             if (url.indexOf('#') > -1) {
@@ -224,7 +224,7 @@
         })
         
         // do this after the urls have all been generated
-        data.forEach(function(doclet) {
+        data().each(function(doclet) {
             doclet.ancestors = generateAncestry(doclet);
         });
         
@@ -337,7 +337,7 @@
 
         if (globals.length) generate('Global', [{kind: 'globalobj'}], 'global.html', containerTemplate);
         
-        var classes = data.get( data.find({kind: 'class'}) );
+        var classes = data({kind: 'class'}).get();
         if (classes.length) generate('Table of Contents', classes, 'index.html', indexTemplate);
 
          
@@ -359,7 +359,7 @@
             
             html = helper.resolveLinks(html); // turn {@link foo} into <a href="foodoc.html">foo</a>
             
-            fs.writeFileSync(path, html)
+            fs.writeFileSync(path, html, 'utf8' );
         }
     }
     
